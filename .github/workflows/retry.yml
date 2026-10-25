@@ -1,0 +1,47 @@
+name: Retry Oracle server
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+# Only one run at a time, so two runs can never launch two servers.
+concurrency:
+  group: oracle-launch
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  issues: write
+  contents: read
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Oracle CLI
+        run: pip install --quiet oci-cli
+
+      - name: Write Oracle config
+        env:
+          OCI_CONFIG: ${{ secrets.OCI_CONFIG }}
+          OCI_KEY: ${{ secrets.OCI_KEY }}
+        run: |
+          mkdir -p ~/.oci
+          printf '%s\n' "$OCI_KEY" > ~/.oci/oci_api_key.pem
+          printf '%s\n' "$OCI_CONFIG" | sed 's|^key_file=.*|key_file=~/.oci/oci_api_key.pem|' > ~/.oci/config
+          chmod 600 ~/.oci/config ~/.oci/oci_api_key.pem
+
+      - name: Try to launch
+        env:
+          SUBNET: ${{ secrets.OCI_SUBNET }}
+          IMAGE: ${{ secrets.OCI_IMAGE }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash retry.sh
