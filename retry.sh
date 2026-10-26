@@ -32,4 +32,6 @@ for n in 1 2 3 4 5; do
   [[ "$reason" == *TooManyRequests* ]] && sleep 60
   [[ $n -lt 5 ]] && sleep 110
 done
+# Chain straight into the next run so retrying doesn't depend on GitHub's best-effort schedule.
+gh workflow run retry.yml || true
 exit 0

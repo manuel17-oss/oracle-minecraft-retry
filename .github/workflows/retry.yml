@@ -2,7 +2,8 @@ name: Retry Oracle server
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    # Backup only: each run also starts the next one itself (see retry.sh).
+    - cron: '3-59/5 * * * *'
   workflow_dispatch:
 
 # Only one run at a time, so two runs can never launch two servers.
