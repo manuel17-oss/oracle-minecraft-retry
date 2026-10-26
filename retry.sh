@@ -32,3 +32,4 @@ for n in 1 2 3 4 5 6 7 8; do
   [[ "$reason" == *TooManyRequests* ]] && sleep 120
   [[ $n -lt 8 ]] && sleep 50
 done
+exit 0
