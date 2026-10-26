@@ -1,5 +1,5 @@
 #!/bin/bash
-# One GitHub run: up to 8 launch attempts about a minute apart.
+# One GitHub run: up to 5 launch attempts about two minutes apart (Oracle throttles faster requests).
 # On success (or if the server already exists) it opens an issue and switches the schedule off.
 export SUPPRESS_LABEL_WARNING=True PYTHONWARNINGS=ignore
 T=$(grep -m1 '^tenancy=' ~/.oci/config | cut -d= -f2)
@@ -16,7 +16,7 @@ existing=$(oci compute instance list -c "$T" --display-name minecraft \
   --query "length(data[?\"lifecycle-state\"!='TERMINATED'])" --raw-output 2>/dev/null)
 [[ "$existing" =~ ^[1-9] ]] && { echo "Server already exists"; done_and_stop; }
 
-for n in 1 2 3 4 5 6 7 8; do
+for n in 1 2 3 4 5; do
   out=$(oci compute instance launch -c "$T" --availability-domain "$AD" --display-name minecraft \
     --shape VM.Standard.A1.Flex --shape-config '{"ocpus":4,"memoryInGBs":24}' \
     --image-id "$IMAGE" --subnet-id "$SUBNET" --assign-public-ip true \
@@ -29,7 +29,7 @@ for n in 1 2 3 4 5 6 7 8; do
   reason=$(grep -oiE 'Out of host capacity|TooManyRequests|LimitExceeded|NotAuthenticated|timed out|InternalError' <<< "$out" | sort -u | tr '\n' ' ')
   echo "Attempt $n: ${reason:-unexpected error}"
   [[ "$reason" == *NotAuthenticated* || -z "$reason" ]] && exit 1
-  [[ "$reason" == *TooManyRequests* ]] && sleep 120
-  [[ $n -lt 8 ]] && sleep 50
+  [[ "$reason" == *TooManyRequests* ]] && sleep 60
+  [[ $n -lt 5 ]] && sleep 110
 done
 exit 0
